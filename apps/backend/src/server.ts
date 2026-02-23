@@ -16,10 +16,8 @@ app.use(
 
 app.use(express.json())
 
-// Rotas do Better-Auth (login, signup, sessão, etc.)
 app.all("/api/auth/*splat", toNodeHandler(auth))
 
-// Rotas da aplicação
 app.use("/api", router)
 
 app.get("/", (_req, res) => {
