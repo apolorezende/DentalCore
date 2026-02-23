@@ -1,9 +1,12 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Copy, RefreshCw, Check, UserCheck, UserX, UserMinus, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useOrg } from "@/lib/org-context"
 
 type Member = {
@@ -75,6 +78,7 @@ function CountdownTimer({ expiresAt }: { expiresAt: string }) {
 
 export default function TeamPage() {
   const { org, role } = useOrg()
+  const router = useRouter()
   const isAdmin = role === "OWNER" || role === "ADMIN"
 
   const [inviteCode, setInviteCode] = useState<InviteCode | null>(null)
@@ -86,6 +90,11 @@ export default function TeamPage() {
 
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [approveRoles, setApproveRoles] = useState<Record<string, string>>({})
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL
 
@@ -126,6 +135,22 @@ export default function TeamPage() {
     })
     setActionLoading(null)
     if (res.ok) fetchMembers()
+  }
+
+  async function handleDeleteOrg() {
+    setDeleteLoading(true)
+    setDeleteError(null)
+    const res = await fetch(`${baseUrl}/api/organizations/${org.slug}`, {
+      method: "DELETE",
+      credentials: "include",
+    })
+    setDeleteLoading(false)
+    if (res.ok) {
+      router.push("/organization-select")
+    } else {
+      const data = await res.json()
+      setDeleteError(data.error ?? "Erro ao excluir organização")
+    }
   }
 
   const pending = members.filter((m) => m.status === "INVITED")
@@ -322,6 +347,70 @@ export default function TeamPage() {
           </div>
         )}
       </div>
+
+      {/* Danger zone — OWNER only */}
+      {role === "OWNER" && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 space-y-4">
+          <div>
+            <h2 className="font-semibold text-sm text-destructive">Zona de perigo</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ações irreversíveis que afetam toda a organização.
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">Excluir organização</p>
+              <p className="text-xs text-muted-foreground">
+                Remove permanentemente a organização e todos os seus membros.
+              </p>
+            </div>
+            <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
+              Excluir organização
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open)
+          if (!open) { setDeleteConfirmText(""); setDeleteError(null) }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Excluir organização</DialogTitle>
+            <DialogDescription asChild>
+              <div>
+                Esta ação é <strong>irreversível</strong>. Todos os membros perderão acesso imediatamente.
+                <br /><br />
+                Para confirmar, digite o nome da organização: <strong>{org.name}</strong>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder={org.name}
+            autoComplete="off"
+          />
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleteLoading}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteOrg}
+              disabled={deleteConfirmText !== org.name || deleteLoading}
+            >
+              {deleteLoading ? "Excluindo..." : "Excluir permanentemente"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
