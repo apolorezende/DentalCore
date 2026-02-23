@@ -82,9 +82,6 @@ export function Sidebar() {
                   <span className="text-sm font-semibold truncate leading-none">
                     {orgs.find((o) => o.slug === currentSlug)?.name ?? "Selecionar org"}
                   </span>
-                  <span className="text-xs text-muted-foreground capitalize mt-0.5">
-                    {orgs.find((o) => o.slug === currentSlug)?.status?.toLowerCase()}
-                  </span>
                 </div>
               )}
               <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />

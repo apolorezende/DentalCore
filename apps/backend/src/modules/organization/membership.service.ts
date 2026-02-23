@@ -1,3 +1,4 @@
+import { Membership, user } from "@prisma/client"
 import { prisma } from "../../lib/prisma"
 
 export async function listMembers(organizationId: string) {
@@ -6,11 +7,11 @@ export async function listMembers(organizationId: string) {
     orderBy: { createdAt: "asc" },
   })
 
-  const userIds = memberships.map((m) => m.authUserId)
+  const userIds = memberships.map((m: Membership) => m.authUserId)
   const users = await prisma.user.findMany({ where: { id: { in: userIds } } })
-  const userMap = Object.fromEntries(users.map((u) => [u.id, u]))
+  const userMap = Object.fromEntries(users.map((u: user) => [u.id, u]))
 
-  return memberships.map((m) => ({
+  return memberships.map((m: Membership) => ({
     membershipId: m.id,
     authUserId: m.authUserId,
     name: userMap[m.authUserId]?.name ?? "Desconhecido",
@@ -21,7 +22,10 @@ export async function listMembers(organizationId: string) {
   }))
 }
 
-export async function joinByCode(userId: string, code: string) {
+type JoinError = { error: string; status: number }
+type JoinSuccess = { orgName: string; message: string }
+
+export async function joinByCode(userId: string, code: string): Promise<JoinError | JoinSuccess> {
   const now = new Date()
   const organization = await prisma.organization.findFirst({
     where: { inviteCode: code.trim().toUpperCase(), inviteCodeExpiresAt: { gt: now } },

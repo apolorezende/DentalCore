@@ -1,4 +1,5 @@
 import { Request, Response } from "express"
+import { Membership, Organization } from "@prisma/client"
 import { prisma } from "../../lib/prisma"
 import { requireSession } from "../../middleware/require-session"
 
@@ -34,7 +35,7 @@ export async function getMyOrganizations(req: Request, res: Response) {
   })
 
   res.json(
-    memberships.map((m) => ({
+    memberships.map((m: Membership & { organization: Organization }) => ({
       id: m.organization.id,
       name: m.organization.name,
       slug: m.organization.slug,

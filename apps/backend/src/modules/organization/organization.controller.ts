@@ -7,6 +7,7 @@ import {
   getOrgMembership,
   getOrganizationBySlug,
 } from "./organization.service"
+import { prisma } from "../../lib/prisma"
 
 export async function getOrganization(req: Request, res: Response) {
   const session = await requireSession(req, res)
@@ -36,6 +37,25 @@ export async function postOrganization(req: Request, res: Response) {
   const { name } = req.body as { name?: string }
   if (!name || name.trim().length < 2) {
     res.status(400).json({ error: "Nome deve ter pelo menos 2 caracteres" })
+    return
+  }
+
+  // Verifica plano do usuário
+  const subscription = await prisma.subscription.findUnique({
+    where: { authUserId: session.user.id },
+  })
+
+  if (!subscription || subscription.status === "TRIAL") {
+    res.status(403).json({ error: "Seu plano atual não permite criar organizações. Faça upgrade para continuar." })
+    return
+  }
+
+  // Plano pago: limita a 1 organização própria (como OWNER)
+  const ownerCount = await prisma.membership.count({
+    where: { authUserId: session.user.id, role: "OWNER", status: "ACTIVE" },
+  })
+  if (ownerCount >= 1) {
+    res.status(403).json({ error: "Seu plano permite criar apenas 1 organização." })
     return
   }
 

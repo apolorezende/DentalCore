@@ -24,6 +24,19 @@ export const auth = betterAuth({
     enabled: true,
   },
 
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await prisma.subscription.upsert({
+            where: { authUserId: user.id },
+            create: { authUserId: user.id, planName: "trial", status: "TRIAL" },
+            update: {},
+          })
+        },
+      },
+    },
+  },
 })
 
 export type Auth = typeof auth

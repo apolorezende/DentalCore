@@ -29,20 +29,6 @@ function getOrgColor(name: string): string {
   return ORG_COLORS[Math.abs(hash) % ORG_COLORS.length]
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    ACTIVE: { label: "Ativo", className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    TRIAL: { label: "Trial", className: "bg-amber-50 text-amber-700 border-amber-200" },
-    INACTIVE: { label: "Inativo", className: "bg-zinc-100 text-zinc-500 border-zinc-200" },
-    SUSPENDED: { label: "Suspenso", className: "bg-red-50 text-red-700 border-red-200" },
-  }
-  const config = map[status] ?? { label: status, className: "bg-zinc-100 text-zinc-500 border-zinc-200" }
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${config.className}`}>
-      {config.label}
-    </span>
-  )
-}
 
 function RoleBadge({ role }: { role: string }) {
   const map: Record<string, { label: string; className: string }> = {
@@ -74,7 +60,6 @@ function OrgCard({ org, onClick }: { org: OrgItem; onClick: () => void }) {
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-foreground truncate leading-tight">{org.name}</p>
           <div className="flex flex-wrap gap-1.5 mt-2">
-            <StatusBadge status={org.status} />
             <RoleBadge role={org.role} />
           </div>
         </div>

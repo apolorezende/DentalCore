@@ -52,6 +52,7 @@ model user {
 
   sessions      session[]
   accounts      account[]
+  subscription  Subscription?
 
   @@map("auth_user")
 }
@@ -116,8 +117,7 @@ model Organization {
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
-  memberships   Membership[]
-  subscriptions Subscription[]
+  memberships Membership[]
 
   @@index([status])
 }
@@ -138,15 +138,14 @@ model Membership {
 
 model Subscription {
   id               String             @id @default(uuid())
-  organizationId   String
+  authUserId       String             @unique
   planName         String
   status           SubscriptionStatus @default(TRIAL)
   currentPeriodEnd DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
-  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user             user               @relation(fields: [authUserId], references: [id], onDelete: Cascade)
 
-  @@index([organizationId])
   @@index([status])
 }

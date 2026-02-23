@@ -17,14 +17,6 @@ export async function createOrganization(userId: string, name: string) {
     },
   })
 
-  await prisma.subscription.create({
-    data: {
-      organizationId: organization.id,
-      planName: "trial",
-      status: "TRIAL",
-    },
-  })
-
   return organization
 }
 
