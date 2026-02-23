@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum OrganizationStatus {
+  ACTIVE
+  TRIAL
+  SUSPENDED
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  DENTIST
+  SECRETARY
+  FINANCE
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  REMOVED
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+//////////////////////////////////////////////////////
+// BETTER AUTH (sessão/autenticação)
+//////////////////////////////////////////////////////
+
+model user {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+
+  sessions      session[]
+  accounts      account[]
+
+  @@map("auth_user")
+}
+
+model session {
+  id        String   @id
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime
+  updatedAt DateTime
+
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_session")
+}
+
+model account {
+  id                    String    @id
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_account")
+}
+
+model verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime
+  updatedAt  DateTime
+
+  @@map("auth_verification")
+}
+
+//////////////////////////////////////////////////////
+// CORE SAAS
+//////////////////////////////////////////////////////
+
+model Organization {
+  id                  String             @id @default(uuid())
+  name                String
+  slug                String             @unique
+  status              OrganizationStatus @default(TRIAL)
+  inviteCode          String?            @unique
+  inviteCodeExpiresAt DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  memberships   Membership[]
+  subscriptions Subscription[]
+
+  @@index([status])
+}
+
+model Membership {
+  id             String           @id @default(uuid())
+  authUserId     String
+  organizationId String
+  role           MembershipRole
+  status         MembershipStatus @default(ACTIVE)
+  createdAt      DateTime         @default(now())
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([authUserId, organizationId])
+  @@index([organizationId])
+}
+
+model Subscription {
+  id               String             @id @default(uuid())
+  organizationId   String
+  planName         String
+  status           SubscriptionStatus @default(TRIAL)
+  currentPeriodEnd DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([status])
+}
